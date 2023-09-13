@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 cmake_minimum_required(VERSION 3.0.2)
-project(psen_scan2_standalone)
+project(psen_scan_v2_standalone)
 
 add_compile_options(-std=c++17)
 if (UNIX)
