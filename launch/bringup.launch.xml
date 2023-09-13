@@ -1,0 +1,65 @@
+<!--
+Copyright (c) 2020-2021 Pilz GmbH & Co. KG
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+
+<!-- Use this launch-file for starting the scanner driver exclusively. -->
+<launch>
+  <!-- IP-Address of Safety laser scanner -->
+  <arg name="sensor_ip" default="192.168.0.10" />
+
+  <!-- Name of the scanner (required to run multiple scanners) which by convention
+       is the prefix for the urdf description. -->
+  <arg name="tf_prefix" default="laser_1" />
+
+  <!-- Start angle of measurement in radian
+       https://github.com/ros2/launch/pull/557 would allow "$(eval math.radians(-137.4))"-->
+  <arg name="angle_start" default="-2.398082392240209" />
+
+  <!-- End angle of measurement in radian -->
+  <arg name="angle_end" default="2.398082392240209" />
+
+  <!-- Publishing of intensities -->
+  <arg name="intensities" default="false" />
+
+  <!-- Scan resolution in radian -->
+  <arg name="resolution" default="0.0017453292519943296" />
+
+  <!-- IP-Address of host machine -->
+  <arg name="host_ip" default="auto" />
+
+  <!-- UDP Port on which monitoring frames (scans) should be received -->
+  <arg name="host_udp_port_data" default="55115" />
+
+  <!-- UDP Port used to send commands (start/stop) and receive the corresponding replies -->
+  <arg name="host_udp_port_control" default="55116" />
+
+  <!-- Set the following to true in order to publish scan data as soon as a UDP packet is ready, instead of waiting for a full scan -->
+  <arg name="fragmented_scans" default="false" />
+
+  <node name="$(var tf_prefix)" exec="psen_scan_v2_node" pkg="psen_scan_v2" output="screen">
+    <param name="sensor_ip" value="$(var sensor_ip)" />
+    <param name="tf_prefix" value="$(var tf_prefix)" />
+    <param name="angle_start" value="$(var angle_start)" />
+    <param name="angle_end" value="$(var angle_end)" />
+    <param name="intensities" value="$(var intensities)" />
+    <param name="resolution" value="$(var resolution)" />
+    <param name="host_ip" value="$(var host_ip)" />
+    <param name="host_udp_port_data" value="$(var host_udp_port_data)" />
+    <param name="host_udp_port_control" value="$(var host_udp_port_control)" />
+    <param name="fragmented_scans" value="$(var fragmented_scans)" />
+  </node>
+
+</launch>
