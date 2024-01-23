@@ -20,22 +20,24 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   <!-- IP-Address of Safety laser scanner -->
   <arg name="sensor_ip" default="192.168.0.10" />
 
+    <!-- How many subscribers are connected to the master scanner, 0 ... 3 are supported. -->
+  <arg name="nr_subscribers" default="0" />
+
   <!-- Name of the scanner (required to run multiple scanners) which by convention
        is the prefix for the urdf description. -->
   <arg name="tf_prefix" default="laser_1" />
 
-  <!-- Start angle of measurement in radian
-       https://github.com/ros2/launch/pull/557 would allow "$(eval math.radians(-137.4))"-->
-  <arg name="angle_start" default="-2.398082392240209" />
+  <!-- Start angle of measurement in radian-->
+  <arg name="angle_start" default="$(eval 'radians(-137.4)')" />
 
   <!-- End angle of measurement in radian -->
-  <arg name="angle_end" default="2.398082392240209" />
+  <arg name="angle_end" default="$(eval 'radians(137.4)')"  />
 
   <!-- Publishing of intensities -->
   <arg name="intensities" default="false" />
 
   <!-- Scan resolution in radian -->
-  <arg name="resolution" default="0.0017453292519943296" />
+  <arg name="resolution" default="$(eval 'radians(0.5)')" />
 
   <!-- IP-Address of host machine -->
   <arg name="host_ip" default="auto" />
@@ -49,7 +51,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   <!-- Set the following to true in order to publish scan data as soon as a UDP packet is ready, instead of waiting for a full scan -->
   <arg name="fragmented_scans" default="false" />
 
-  <node name="$(var tf_prefix)" exec="psen_scan_v2_node" pkg="psen_scan_v2" output="screen">
+  <node name="psen_scan_v2_node" exec="psen_scan_v2_node" pkg="psen_scan_v2" output="screen">
     <param name="sensor_ip" value="$(var sensor_ip)" />
     <param name="tf_prefix" value="$(var tf_prefix)" />
     <param name="angle_start" value="$(var angle_start)" />
@@ -60,6 +62,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     <param name="host_udp_port_data" value="$(var host_udp_port_data)" />
     <param name="host_udp_port_control" value="$(var host_udp_port_control)" />
     <param name="fragmented_scans" value="$(var fragmented_scans)" />
+    <param name="nr_subscribers" value="$(var nr_subscribers)" />
   </node>
 
 </launch>

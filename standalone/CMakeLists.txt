@@ -35,7 +35,7 @@ if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
 endif()
 
 ## System dependencies are found with CMake's conventions
-find_package(Boost 1.74) 
+find_package(Boost 1.72) ## Boost::system is header-only since 1.69
 if(Boost_FOUND)
   add_definitions(-DBOOST_ERROR_CODE_HEADER_ONLY -DBOOST_DATE_TIME_NO_LIB -DBOOST_REGEX_NO_LIB -DBOOST_SYSTEM_NO_LIB)
 else()
@@ -48,10 +48,6 @@ find_package(fmt REQUIRED)
 ## Build ##
 ###########
 
-# ignore BOOST deprecated headers
-add_definitions("-DBOOST_ALLOW_DEPRECATED_HEADERS")
-add_definitions("-DBOOST_BIND_GLOBAL_PLACEHOLDERS")
-
 include_directories(
   include
   ${console_bridge_INCLUDE_DIRS}
@@ -60,6 +56,7 @@ include_directories(
 
 set(${PROJECT_NAME}_sources
   src/scanner_v2.cpp
+  src/io_state.cpp
   src/laserscan.cpp
   src/data_conversion_layer/monitoring_frame_msg.cpp
   src/data_conversion_layer/start_request.cpp
@@ -84,259 +81,294 @@ target_link_libraries(${PROJECT_NAME}_app
   ${PROJECT_NAME}
 )
 
-
-
 ###########
 ## Tests ##
 ###########
-if (BUILD_TESTING)
+# if (BUILD_TESTING)
+
+# include(CTest)
+
+# # The standalone is included  with add_subdirectory from the top-level ROS CMakeLists.txt
+# # However the tests are build separately in the top-level and thus should be ignored here.
+# # If you don't know what ROS is, simply ignore this line.
+# if(NOT DEFINED catkin_FOUND)
 
-include(CTest)
+# # Download + Install gtest (see https://github.com/google/googletest/blob/master/googletest/README.md)
+# configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
+# execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+#   RESULT_VARIABLE result
+#   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
+# if(result)
+#   message(FATAL_ERROR "CMake step for googletest failed: ${result}")
+# endif()
+# execute_process(COMMAND ${CMAKE_COMMAND} --build .
+#   RESULT_VARIABLE result
+#   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
+# if(result)
+#   message(FATAL_ERROR "Build step for googletest failed: ${result}")
+# endif()
 
-# The standalone is included  with add_subdirectory from the top-level ROS CMakeLists.txt
-# However the tests are build separately in the top-level and thus should be ignored here.
-# If you don't know what ROS is, simply ignore this line.
-if(NOT DEFINED catkin_FOUND)
+# set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
-# Download + Install gtest (see https://github.com/google/googletest/blob/master/googletest/README.md)
-configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
-execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-  RESULT_VARIABLE result
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
-if(result)
-  message(FATAL_ERROR "CMake step for googletest failed: ${result}")
-endif()
-execute_process(COMMAND ${CMAKE_COMMAND} --build .
-  RESULT_VARIABLE result
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
-if(result)
-  message(FATAL_ERROR "Build step for googletest failed: ${result}")
-endif()
+# add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
+#                  ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
+#                  EXCLUDE_FROM_ALL)
 
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+# if (CMAKE_VERSION VERSION_LESS 2.8.11)
+#   include_directories("${gtest_SOURCE_DIR}/include")
+# endif()
 
-add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
-                 ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
-                 EXCLUDE_FROM_ALL)
+# include_directories(
+#   test/include
+#   ${GTEST_INCLUDE_DIRS}
+# )
 
-if (CMAKE_VERSION VERSION_LESS 2.8.11)
-  include_directories("${gtest_SOURCE_DIR}/include")
-endif()
+# ADD_EXECUTABLE(unittest_laserscan_conversions test/unit_tests/data_conversion_layer/unittest_laserscan_conversions.cpp)
 
-include_directories(
-  test/include
-  ${GTEST_INCLUDE_DIRS}
-)
+# TARGET_LINK_LIBRARIES(unittest_laserscan_conversions
+#     ${PROJECT_NAME}
+#     gtest gmock
+# )
 
-ADD_EXECUTABLE(unittest_laserscan_conversions test/unit_tests/data_conversion_layer/unittest_laserscan_conversions.cpp)
+# ADD_TEST(NAME unittest_laserscan_conversions
+#          COMMAND unittest_laserscan_conversions)
 
-TARGET_LINK_LIBRARIES(unittest_laserscan_conversions
-    ${PROJECT_NAME}
-    gtest
-)
+# ADD_EXECUTABLE(unittest_laserscan test/unit_tests/api/unittest_laserscan.cpp)
 
-ADD_TEST(NAME unittest_laserscan_conversions
-         COMMAND unittest_laserscan_conversions)
+# TARGET_LINK_LIBRARIES(unittest_laserscan
+#     ${PROJECT_NAME}
+#     gtest
+# )
 
-ADD_EXECUTABLE(unittest_laserscan test/unit_tests/api/unittest_laserscan.cpp)
+# ADD_TEST(NAME unittest_laserscan
+#          COMMAND unittest_laserscan)
 
-TARGET_LINK_LIBRARIES(unittest_laserscan
-    ${PROJECT_NAME}
-    gtest
-)
+# ADD_EXECUTABLE(unittest_pin_state
+#                test/unit_tests/api/unittest_pin_state.cpp
+#                src/io_state.cpp)
 
-ADD_TEST(NAME unittest_laserscan
-         COMMAND unittest_laserscan)
+# TARGET_LINK_LIBRARIES(unittest_pin_state
+#     ${PROJECT_NAME}
+#     gtest
+# )
 
-ADD_EXECUTABLE(unittest_logging test/unit_tests/util/unittest_logging.cpp)
+# ADD_TEST(NAME unittest_pin_state
+#          COMMAND unittest_pin_state)
 
-TARGET_LINK_LIBRARIES(unittest_logging
-    ${PROJECT_NAME}
-    gtest gmock
-)
+# ADD_EXECUTABLE(unittest_io_state
+#                test/unit_tests/api/unittest_io_state.cpp
+#                src/io_state.cpp)
 
-ADD_TEST(NAME unittest_logging
-         COMMAND unittest_logging)
+# TARGET_LINK_LIBRARIES(unittest_io_state
+#     ${PROJECT_NAME}
+#     gtest
+# )
 
+# ADD_TEST(NAME unittest_io_state
+#          COMMAND unittest_io_state)
 
-ADD_EXECUTABLE(unittest_monitoring_frame_diagnostic_message test/unit_tests/data_conversion_layer/unittest_monitoring_frame_diagnostic_message.cpp)
+# ADD_EXECUTABLE(unittest_io_state_conversions
+#                test/unit_tests/data_conversion_layer/unittest_io_state_conversions.cpp
+#                src/io_state.cpp)
 
-TARGET_LINK_LIBRARIES(unittest_monitoring_frame_diagnostic_message
-    ${PROJECT_NAME}
-    gtest
-)
+# TARGET_LINK_LIBRARIES(unittest_io_state_conversions
+#     ${PROJECT_NAME}
+#     gtest
+# )
 
-ADD_TEST(NAME unittest_monitoring_frame_diagnostic_message
-         COMMAND unittest_monitoring_frame_diagnostic_message)
+# ADD_TEST(NAME unittest_io_state_conversions
+#          COMMAND unittest_io_state_conversions)
 
-ADD_EXECUTABLE(unittest_monitoring_frame_msg test/unit_tests/data_conversion_layer/unittest_monitoring_frame_msg.cpp)
+# ADD_EXECUTABLE(unittest_io_pin_data test/unit_tests/data_conversion_layer/unittest_io_pin_data.cpp)
 
-TARGET_LINK_LIBRARIES(unittest_monitoring_frame_msg
-    ${PROJECT_NAME}
-    gtest
-)
+# TARGET_LINK_LIBRARIES(unittest_io_pin_data
+#     ${PROJECT_NAME}
+#     gtest
+# )
 
-ADD_TEST(NAME unittest_monitoring_frame_msg
-         COMMAND unittest_monitoring_frame_msg)
+# ADD_TEST(NAME unittest_io_pin_data
+#          COMMAND unittest_io_pin_data)
 
-ADD_EXECUTABLE(unittest_monitoring_frame_msg_stamped
-               test/unit_tests/data_conversion_layer/unittest_monitoring_frame_msg_stamped.cpp)
+# ADD_EXECUTABLE(unittest_logging test/unit_tests/util/unittest_logging.cpp)
 
-TARGET_LINK_LIBRARIES(unittest_monitoring_frame_msg_stamped
-    ${PROJECT_NAME}
-    gtest
-)
+# TARGET_LINK_LIBRARIES(unittest_logging
+#     ${PROJECT_NAME}
+#     gtest gmock
+# )
 
-ADD_TEST(NAME unittest_monitoring_frame_msg_stamped
-         COMMAND unittest_monitoring_frame_msg_stamped)
+# ADD_TEST(NAME unittest_logging
+#          COMMAND unittest_logging)
 
-ADD_EXECUTABLE(unittest_monitoring_frame_serialization_deserialization
-               test/unit_tests/data_conversion_layer/unittest_monitoring_frame_serialization_deserialization.cpp
-               test/src/data_conversion_layer/monitoring_frame_serialization.cpp)
 
-TARGET_LINK_LIBRARIES(unittest_monitoring_frame_serialization_deserialization
-    ${PROJECT_NAME}
-    gtest
-)
+# ADD_EXECUTABLE(unittest_monitoring_frame_diagnostic_message test/unit_tests/data_conversion_layer/unittest_monitoring_frame_diagnostic_message.cpp)
 
-ADD_TEST(NAME unittest_monitoring_frame_serialization_deserialization
-         COMMAND unittest_monitoring_frame_serialization_deserialization)
+# TARGET_LINK_LIBRARIES(unittest_monitoring_frame_diagnostic_message
+#     ${PROJECT_NAME}
+#     gtest
+# )
 
+# ADD_TEST(NAME unittest_monitoring_frame_diagnostic_message
+#          COMMAND unittest_monitoring_frame_diagnostic_message)
 
-ADD_EXECUTABLE(unittest_raw_processing test/unit_tests/data_conversion_layer/unittest_raw_processing.cpp)
+# ADD_EXECUTABLE(unittest_monitoring_frame_msg test/unit_tests/data_conversion_layer/unittest_monitoring_frame_msg.cpp)
 
-TARGET_LINK_LIBRARIES(unittest_raw_processing
-    ${PROJECT_NAME}
-    gtest
-)
+# TARGET_LINK_LIBRARIES(unittest_monitoring_frame_msg
+#     ${PROJECT_NAME}
+#     gtest gmock
+# )
 
-ADD_TEST(NAME unittest_raw_processing
-         COMMAND unittest_raw_processing)
+# ADD_TEST(NAME unittest_monitoring_frame_msg
+#          COMMAND unittest_monitoring_frame_msg)
 
+# ADD_EXECUTABLE(unittest_monitoring_frame_msg_stamped
+#                test/unit_tests/data_conversion_layer/unittest_monitoring_frame_msg_stamped.cpp)
 
-ADD_EXECUTABLE(unittest_scan_range test/unit_tests/util/unittest_scan_range.cpp)
+# TARGET_LINK_LIBRARIES(unittest_monitoring_frame_msg_stamped
+#     ${PROJECT_NAME}
+#     gtest gmock
+# )
 
-TARGET_LINK_LIBRARIES(unittest_scan_range
-    ${PROJECT_NAME}
-    gtest
-)
+# ADD_TEST(NAME unittest_monitoring_frame_msg_stamped
+#          COMMAND unittest_monitoring_frame_msg_stamped)
 
-ADD_TEST(NAME unittest_scan_range
-         COMMAND unittest_scan_range)
+# ADD_EXECUTABLE(unittest_monitoring_frame_serialization_deserialization
+#                test/unit_tests/data_conversion_layer/unittest_monitoring_frame_serialization_deserialization.cpp
+#                test/src/data_conversion_layer/monitoring_frame_serialization.cpp)
 
+# TARGET_LINK_LIBRARIES(unittest_monitoring_frame_serialization_deserialization
+#     ${PROJECT_NAME}
+#     gtest gmock
+# )
 
-ADD_EXECUTABLE(unittest_scanner_configuration test/unit_tests/configuration/unittest_scanner_configuration.cpp)
+# ADD_TEST(NAME unittest_monitoring_frame_serialization_deserialization
+#          COMMAND unittest_monitoring_frame_serialization_deserialization)
 
-TARGET_LINK_LIBRARIES(unittest_scanner_configuration
-    ${PROJECT_NAME}
-    gtest
-)
 
-ADD_TEST(NAME unittest_scanner_configuration
-         COMMAND unittest_scanner_configuration)
+# ADD_EXECUTABLE(unittest_raw_processing test/unit_tests/data_conversion_layer/unittest_raw_processing.cpp)
 
+# TARGET_LINK_LIBRARIES(unittest_raw_processing
+#     ${PROJECT_NAME}
+#     gtest
+# )
 
-ADD_EXECUTABLE(unittest_scanner_reply_msg test/unit_tests/data_conversion_layer/unittest_scanner_reply_msg.cpp)
+# ADD_TEST(NAME unittest_raw_processing
+#          COMMAND unittest_raw_processing)
 
-TARGET_LINK_LIBRARIES(unittest_scanner_reply_msg
-    ${PROJECT_NAME}
-    gtest
-)
 
-ADD_TEST(NAME unittest_scanner_reply_msg
-         COMMAND unittest_scanner_reply_msg)
+# ADD_EXECUTABLE(unittest_scan_range test/unit_tests/util/unittest_scan_range.cpp)
 
+# TARGET_LINK_LIBRARIES(unittest_scan_range
+#     ${PROJECT_NAME}
+#     gtest
+# )
 
-ADD_EXECUTABLE(unittest_start_request test/unit_tests/data_conversion_layer/unittest_start_request.cpp)
+# ADD_TEST(NAME unittest_scan_range
+#          COMMAND unittest_scan_range)
 
-TARGET_LINK_LIBRARIES(unittest_start_request
-    ${PROJECT_NAME}
-    gtest
-)
 
-ADD_TEST(NAME unittest_start_request
-         COMMAND unittest_start_request)
+# ADD_EXECUTABLE(unittest_scanner_configuration test/unit_tests/configuration/unittest_scanner_configuration.cpp)
 
+# TARGET_LINK_LIBRARIES(unittest_scanner_configuration
+#     ${PROJECT_NAME}
+#     gtest
+# )
 
-ADD_EXECUTABLE(unittest_stop_request test/unit_tests/data_conversion_layer/unittest_stop_request.cpp)
+# ADD_TEST(NAME unittest_scanner_configuration
+#          COMMAND unittest_scanner_configuration)
 
-TARGET_LINK_LIBRARIES(unittest_stop_request
-    ${PROJECT_NAME}
-    gtest
-)
 
-ADD_TEST(NAME unittest_stop_request
-        COMMAND unittest_stop_request)
+# ADD_EXECUTABLE(unittest_scanner_reply_msg test/unit_tests/data_conversion_layer/unittest_scanner_reply_msg.cpp)
 
+# TARGET_LINK_LIBRARIES(unittest_scanner_reply_msg
+#     ${PROJECT_NAME}
+#     gtest
+# )
 
-ADD_EXECUTABLE(unittest_tenth_degree_conversion test/unit_tests/data_conversion_layer/unittest_tenth_degree_conversion.cpp)
+# ADD_TEST(NAME unittest_scanner_reply_msg
+#          COMMAND unittest_scanner_reply_msg)
 
-TARGET_LINK_LIBRARIES(unittest_tenth_degree_conversion
-    ${PROJECT_NAME}
-    gtest
-)
 
-ADD_TEST(NAME unittest_tenth_degree_conversion
-        COMMAND unittest_tenth_degree_conversion)
+# ADD_EXECUTABLE(unittest_start_request test/unit_tests/data_conversion_layer/unittest_start_request.cpp)
 
+# TARGET_LINK_LIBRARIES(unittest_start_request
+#     ${PROJECT_NAME}
+#     gtest
+# )
 
-ADD_EXECUTABLE(unittest_tenth_of_degree test/unit_tests/util/unittest_tenth_of_degree.cpp)
+# ADD_TEST(NAME unittest_start_request
+#          COMMAND unittest_start_request)
 
-TARGET_LINK_LIBRARIES(unittest_tenth_of_degree
-    ${PROJECT_NAME}
-    gtest
-)
 
-ADD_TEST(NAME unittest_tenth_of_degree
-        COMMAND unittest_tenth_of_degree)
+# ADD_EXECUTABLE(unittest_stop_request test/unit_tests/data_conversion_layer/unittest_stop_request.cpp)
 
+# TARGET_LINK_LIBRARIES(unittest_stop_request
+#     ${PROJECT_NAME}
+#     gtest
+# )
 
-ADD_EXECUTABLE(unittest_udp_client test/unit_tests/communication_layer/unittest_udp_client.cpp)
+# ADD_TEST(NAME unittest_stop_request
+#         COMMAND unittest_stop_request)
 
-TARGET_LINK_LIBRARIES(unittest_udp_client
-    ${PROJECT_NAME}
-    gtest gmock
-)
 
-ADD_TEST(NAME unittest_udp_client
-        COMMAND unittest_udp_client)
+# ADD_EXECUTABLE(unittest_tenth_degree_conversion test/unit_tests/data_conversion_layer/unittest_tenth_degree_conversion.cpp)
 
+# TARGET_LINK_LIBRARIES(unittest_tenth_degree_conversion
+#     ${PROJECT_NAME}
+#     gtest
+# )
 
-add_executable(integrationtest_scanner_api
-        test/integration_tests/api/integrationtest_scanner_api.cpp
-        test/src/communication_layer/mock_udp_server.cpp
-        test/src/communication_layer/scanner_mock.cpp
-        test/src/data_conversion_layer/monitoring_frame_serialization.cpp
-        src/scanner_v2.cpp
-        src/laserscan.cpp
-        src/data_conversion_layer/monitoring_frame_msg.cpp
-        src/data_conversion_layer/monitoring_frame_deserialization.cpp
-        src/data_conversion_layer/start_request.cpp
-        src/data_conversion_layer/stop_request_serialization.cpp
-        src/data_conversion_layer/diagnostics.cpp
-        src/data_conversion_layer/start_request_serialization.cpp
-        src/data_conversion_layer/scanner_reply_serialization_deserialization.cpp)
+# ADD_TEST(NAME unittest_tenth_degree_conversion
+#         COMMAND unittest_tenth_degree_conversion)
 
-target_link_libraries(integrationtest_scanner_api
-    ${PROJECT_NAME}
-    gtest gmock
-)
 
-add_test(NAME integrationtest_scanner_api
-        COMMAND integrationtest_scanner_api)
+# ADD_EXECUTABLE(unittest_tenth_of_degree test/unit_tests/util/unittest_tenth_of_degree.cpp)
 
+# TARGET_LINK_LIBRARIES(unittest_tenth_of_degree
+#     ${PROJECT_NAME}
+#     gtest
+# )
 
-add_executable(integrationtest_udp_client
-        test/integration_tests/communication_layer/integrationtest_udp_client.cpp
-        test/src/communication_layer/mock_udp_server.cpp)
+# ADD_TEST(NAME unittest_tenth_of_degree
+#         COMMAND unittest_tenth_of_degree)
 
-target_link_libraries(integrationtest_udp_client
-    ${PROJECT_NAME}
-    gtest gmock
-)
 
-add_test(NAME integrationtest_udp_client
-        COMMAND integrationtest_udp_client)
+# ADD_EXECUTABLE(unittest_udp_client test/unit_tests/communication_layer/unittest_udp_client.cpp)
 
-endif ()
-endif ()
+# TARGET_LINK_LIBRARIES(unittest_udp_client
+#     ${PROJECT_NAME}
+#     gtest gmock
+# )
+
+# ADD_TEST(NAME unittest_udp_client
+#         COMMAND unittest_udp_client)
+
+
+# add_executable(integrationtest_scanner_api
+#         test/integration_tests/api/integrationtest_scanner_api.cpp
+#         test/src/communication_layer/mock_udp_server.cpp
+#         test/src/communication_layer/scanner_mock.cpp
+#         test/src/data_conversion_layer/monitoring_frame_serialization.cpp)
+
+# target_link_libraries(integrationtest_scanner_api
+#     ${PROJECT_NAME}
+#     gtest gmock
+# )
+
+# add_test(NAME integrationtest_scanner_api
+#         COMMAND integrationtest_scanner_api)
+
+
+# add_executable(integrationtest_udp_client
+#         test/integration_tests/communication_layer/integrationtest_udp_client.cpp
+#         test/src/communication_layer/mock_udp_server.cpp)
+
+# target_link_libraries(integrationtest_udp_client
+#     ${PROJECT_NAME}
+#     gtest gmock
+# )
+
+# add_test(NAME integrationtest_udp_client
+#         COMMAND integrationtest_udp_client)
+
+# endif ()
+# endif ()
