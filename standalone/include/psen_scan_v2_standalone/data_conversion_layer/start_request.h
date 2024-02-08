@@ -44,12 +44,12 @@ class Message
 public:
   Message(const ScannerConfiguration& scanner_configuration);
 
-  friend data_conversion_layer::RawData serialize(const data_conversion_layer::start_request::Message&,
-                                                  const uint32_t&);
+  friend data_conversion_layer::RawData serialize(const data_conversion_layer::start_request::Message& msg,
+                                                  const uint32_t& seq_number);
 
 private:
   /**
-   * @brief Class describing the scan settings of the master and slave devices.
+   * @brief Class describing the scan settings of the master and subscriber devices.
    *
    * The settings include the scan range and the scan resolution of the respective device.
    */
@@ -60,8 +60,8 @@ private:
     constexpr LaserScanSettings(const ScanRange& scan_range, const util::TenthOfDegree& resolution);
 
   public:
-    constexpr const ScanRange& getScanRange() const;
-    constexpr util::TenthOfDegree getResolution() const;
+    constexpr const ScanRange& scanRange() const;
+    constexpr util::TenthOfDegree resolution() const;
 
   private:
     const ScanRange scan_range_{ ScanRange::createInvalidScanRange() };
@@ -69,24 +69,26 @@ private:
   };
 
   /**
-   * @brief Class describing the fundamental settings of the master and slave devices, like id and diagnostics.
+   * @brief Class describing the fundamental settings of the master and subscriber devices, like id and diagnostics.
    */
   class DeviceSettings
   {
   public:
-    constexpr DeviceSettings(const bool diagnostics_enabled, const bool intensities_enabled);
+    constexpr DeviceSettings(const bool diagnostics_enabled, const bool intensities_enabled, const uint8_t nr_subscribers);
 
   public:
     constexpr bool diagnosticsEnabled() const;
     constexpr bool intensitiesEnabled() const;
+    constexpr uint8_t nrSubscribers() const;
 
   private:
     const bool diagnostics_enabled_;
     const bool intensities_enabled_;
+    const uint8_t nr_subscribers_;
   };
 
 private:
-  static constexpr std::size_t NUM_SLAVES{ 3 };
+  static constexpr std::size_t NUM_SUBSCRIBERS{ 3 };
 
 private:
   const uint32_t host_ip_;  ///< network byte order = big endian
@@ -94,7 +96,8 @@ private:
 
   const DeviceSettings master_device_settings_;
   const LaserScanSettings master_;
-  const std::array<LaserScanSettings, NUM_SLAVES> slaves_;
+  const std::array<LaserScanSettings, NUM_SUBSCRIBERS> subscribers_;  // Note: This refers to the scanner type
+                                                                      // subscriber, *not* a ros subscriber
 };
 
 constexpr Message::LaserScanSettings::LaserScanSettings(const ScanRange& scan_range,
@@ -103,18 +106,18 @@ constexpr Message::LaserScanSettings::LaserScanSettings(const ScanRange& scan_ra
 {
 }
 
-constexpr const ScanRange& Message::LaserScanSettings::getScanRange() const
+constexpr const ScanRange& Message::LaserScanSettings::scanRange() const
 {
   return scan_range_;
 };
 
-constexpr util::TenthOfDegree Message::LaserScanSettings::getResolution() const
+constexpr util::TenthOfDegree Message::LaserScanSettings::resolution() const
 {
   return resolution_;
 };
 
-constexpr Message::DeviceSettings::DeviceSettings(const bool diagnostics_enabled, const bool intensities_enabled)
-  : diagnostics_enabled_(diagnostics_enabled), intensities_enabled_(intensities_enabled)
+constexpr Message::DeviceSettings::DeviceSettings(const bool diagnostics_enabled, const bool intensities_enabled, const uint8_t nr_subscribers)
+  : diagnostics_enabled_(diagnostics_enabled), intensities_enabled_(intensities_enabled), nr_subscribers_(nr_subscribers)
 {
 }
 
@@ -126,6 +129,11 @@ constexpr bool Message::DeviceSettings::diagnosticsEnabled() const
 constexpr bool Message::DeviceSettings::intensitiesEnabled() const
 {
   return intensities_enabled_;
+};
+
+constexpr uint8_t Message::DeviceSettings::nrSubscribers() const
+{
+  return nr_subscribers_;
 };
 
 }  // namespace start_request

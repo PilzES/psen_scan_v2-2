@@ -41,7 +41,7 @@ class OutdatedMessageError : public ScanRoundError
 {
 public:
   OutdatedMessageError(const std::string& msg = "Detected a MonitoringFrame from an earlier round. "
-                                                " The scan round will ignore it.")
+                                                "The scan round will ignore it.")
     : ScanRoundError(msg){};
 };
 
@@ -88,6 +88,9 @@ public:
    * arrived.
    *
    * @param stamped_msg Current received MonitoringFrame.
+   *
+   * @throws data_conversion_layer::monitoring_frame::AdditionalFieldMissing if scan_counter is not set in
+   * stamped_msg.msg_.
    */
   void add(const data_conversion_layer::monitoring_frame::MessageStamped& stamped_msg);
 
@@ -96,7 +99,8 @@ public:
    * there is an expected brake in the receiving of MonitoringFrames.
    */
   void reset();
-  std::vector<data_conversion_layer::monitoring_frame::MessageStamped> getMsgs();
+  std::vector<data_conversion_layer::monitoring_frame::MessageStamped> currentRound();
+
   bool isRoundComplete();
 
 private:
@@ -104,7 +108,7 @@ private:
 
 private:
   std::vector<data_conversion_layer::monitoring_frame::MessageStamped> current_round_{};
-  const uint32_t& num_expected_msgs_;
+  const uint32_t num_expected_msgs_;
   bool first_scan_round_ = true;
 };
 
@@ -117,7 +121,7 @@ inline void ScanBuffer::reset()
   current_round_.clear();
 }
 
-inline std::vector<data_conversion_layer::monitoring_frame::MessageStamped> ScanBuffer::getMsgs()
+inline std::vector<data_conversion_layer::monitoring_frame::MessageStamped> ScanBuffer::currentRound()
 {
   return current_round_;
 }
@@ -141,8 +145,10 @@ inline void ScanBuffer::add(const data_conversion_layer::monitoring_frame::Messa
   {
     startNewRound(stamped_msg);
   }
-  else
-  {
+  else  // stamped_msg.msg_.scanCounter() < current_round_.at(0).msg_.scanCounter()
+  {    
+    current_round_.clear();
+    current_round_.push_back(std::move(stamped_msg));
     throw OutdatedMessageError();
   }
 }

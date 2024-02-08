@@ -18,8 +18,11 @@
 #include <stdexcept>
 
 #include <fmt/format.h>
+#include <fmt/ostream.h>
 
+#include "psen_scan_v2_standalone/configuration/scanner_ids.h"
 #include "psen_scan_v2_standalone/data_conversion_layer/angle_conversions.h"
+#include "psen_scan_v2_standalone/io_state.h"
 #include "psen_scan_v2_standalone/laserscan.h"
 #include "psen_scan_v2_standalone/util/format_range.h"
 
@@ -31,90 +34,185 @@ LaserScan::LaserScan(const util::TenthOfDegree& resolution,
                      const util::TenthOfDegree& min_scan_angle,
                      const util::TenthOfDegree& max_scan_angle,
                      const uint32_t scan_counter,
-                     const int64_t timestamp)
+                     const uint8_t active_zoneset,
+                     const int64_t timestamp,
+                     const configuration::ScannerId scanner_id)
   : resolution_(resolution)
   , min_scan_angle_(min_scan_angle)
   , max_scan_angle_(max_scan_angle)
   , scan_counter_(scan_counter)
+  , active_zoneset_(active_zoneset)
   , timestamp_(timestamp)
+  , scanner_id_(scanner_id)
 {
-  if (getScanResolution() == util::TenthOfDegree(0))
+  if (scanResolution() == util::TenthOfDegree(0))
   {
     throw std::invalid_argument("Resolution must not be 0");
   }
 
-  if (getScanResolution() > MAX_X_AXIS_ROTATION)
+  if (scanResolution() > MAX_X_AXIS_ROTATION)
   {
     throw std::invalid_argument("Resolution out of possible angle range");
   }
 
-  if (getMinScanAngle() > getMaxScanAngle())
+  if (minScanAngle() > maxScanAngle())
   {
     throw std::invalid_argument("Attention: Start angle has to be smaller or equal to the end angle!");
   }
 }
 
-const util::TenthOfDegree& LaserScan::getScanResolution() const
+const util::TenthOfDegree& LaserScan::scanResolution() const
 {
   return resolution_;
 }
 
+// LCOV_EXCL_START
+const util::TenthOfDegree& LaserScan::getScanResolution() const
+{
+  return this->scanResolution();
+}
+
 const util::TenthOfDegree& LaserScan::getMinScanAngle() const
 {
-  return min_scan_angle_;
+  return this->minScanAngle();
 }
 
 const util::TenthOfDegree& LaserScan::getMaxScanAngle() const
 {
-  return max_scan_angle_;
+  return this->maxScanAngle();
 }
 
 const LaserScan::MeasurementData& LaserScan::getMeasurements() const
 {
-  return measurements_;
+  return this->measurements();
 }
 
 uint32_t LaserScan::getScanCounter() const
 {
-  return scan_counter_;
+  return this->scanCounter();
 }
 
 int64_t LaserScan::getTimestamp() const
 {
-  return timestamp_;
+  return this->timestamp();
+}
+
+uint8_t LaserScan::getActiveZoneset() const
+{
+  return this->activeZoneset();
 }
 
 void LaserScan::setMeasurements(const MeasurementData& measurements)
 {
-  measurements_ = measurements;
+  this->measurements(measurements);
 }
 
 LaserScan::MeasurementData& LaserScan::getMeasurements()
 {
-  return measurements_;
+  return this->measurements();
 }
 
 const LaserScan::IntensityData& LaserScan::getIntensities() const
 {
-  return intensities_;
+  return this->intensities();
 }
 
 void LaserScan::setIntensities(const IntensityData& intensities)
 {
+  this->intensities(intensities);
+}
+// LCOV_EXCL_STOP
+
+const util::TenthOfDegree& LaserScan::minScanAngle() const
+{
+  return min_scan_angle_;
+}
+
+const util::TenthOfDegree& LaserScan::maxScanAngle() const
+{
+  return max_scan_angle_;
+}
+
+configuration::ScannerId LaserScan::scannerId() const
+{
+  return scanner_id_;
+}
+
+const LaserScan::MeasurementData& LaserScan::measurements() const
+{
+  return measurements_;
+}
+
+uint32_t LaserScan::scanCounter() const
+{
+  return scan_counter_;
+}
+
+uint8_t LaserScan::activeZoneset() const
+{
+  return active_zoneset_;
+}
+
+int64_t LaserScan::timestamp() const
+{
+  return timestamp_;
+}
+
+void LaserScan::measurements(const MeasurementData& measurements)
+{
+  measurements_ = measurements;
+}
+
+LaserScan::MeasurementData& LaserScan::measurements()
+{
+  return measurements_;
+}
+
+const LaserScan::IntensityData& LaserScan::intensities() const
+{
+  return intensities_;
+}
+
+void LaserScan::intensities(const IntensityData& intensities)
+{
   intensities_ = intensities;
+}
+
+// LCOV_EXCL_START
+void LaserScan::setIOStates(const IOData& io_states)
+{
+  ioStates(io_states);
+}
+
+const LaserScan::IOData& LaserScan::getIOStates() const
+{
+  return ioStates();
+}
+// LCOV_EXCL_STOP
+
+void LaserScan::ioStates(const IOData& io_states)
+{
+  io_states_ = io_states;
+}
+
+const LaserScan::IOData& LaserScan::ioStates() const
+{
+  return io_states_;
 }
 
 std::ostream& operator<<(std::ostream& os, const LaserScan& scan)
 {
   os << fmt::format("LaserScan(timestamp = {} nsec, scanCounter = {}, minScanAngle = {} deg, maxScanAngle = {} deg, "
-                    "resolution = {} deg, measurements = {}, intensities = {})",
-                    scan.getTimestamp(),
-                    scan.getScanCounter(),
-                    scan.getMinScanAngle().value() / 10.,
-                    scan.getMaxScanAngle().value() / 10.,
-                    scan.getScanResolution().value() / 10.,
-                    util::formatRange(scan.getMeasurements()),
-                    util::formatRange(scan.getIntensities()));
+                    "resolution = {} deg, active_zoneset = {}, measurements = {}, intensities = {}, io_states = {})",
+                    scan.timestamp(),
+                    scan.scanCounter(),
+                    scan.minScanAngle().value() / 10.,
+                    scan.maxScanAngle().value() / 10.,
+                    scan.scanResolution().value() / 10.,
+                    scan.activeZoneset(),
+                    util::formatRange(scan.measurements()),
+                    util::formatRange(scan.intensities()),
+                    util::formatRange(scan.ioStates()));
   return os;
 }
 

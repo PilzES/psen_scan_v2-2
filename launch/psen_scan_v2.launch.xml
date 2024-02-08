@@ -20,21 +20,26 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
   <!-- IP-Address of Safety laser scanner -->
   <arg name="sensor_ip" default="192.168.0.10" />
 
+  <!-- How many subscribers are connected to the master scanner, 0 .. 3 are supported. -->
+  <arg name="nr_subscribers" default="0" />
+
   <!-- Name of the scanner (required to run multiple scanners) -->
   <arg name="tf_prefix" default="laser_1" />
+  <arg name="tf_prefix_sub0" default="laser_1_subscriber0" />
+  <arg name="tf_prefix_sub1" default="laser_1_subscriber1" />
+  <arg name="tf_prefix_sub2" default="laser_1_subscriber2" />
 
   <!-- Start angle of measurement in radian -->
-  <arg name="angle_start" default="-2.398082392240209" />
+  <arg name="angle_start" default="$(eval 'radians(-137.4)')"  />
 
   <!-- End angle of measurement in radian -->
-
-  <arg name="angle_end" default="2.398082392240209" />
+  <arg name="angle_end" default="$(eval 'radians(137.4)')"  />
 
   <!-- Publishing of intensities -->
   <arg name="intensities" default="false" />
 
   <!-- Scan resolution in radian -->
-  <arg name="resolution" default="0.0017453292519943296" />
+  <arg name="resolution" default="$(eval 'radians(0.5)')" />
 
   <!-- IP-Address of host machine -->
   <arg name="host_ip" default="auto" />
@@ -47,6 +52,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
   <!-- Set the following to true in order to publish scan data as soon as a UDP packet is ready, instead of waiting for a full scan -->
   <arg name="fragmented_scans" default="false" />
+
+  <!-- Load scanner config file to publish zonesets -->
+  <arg name="zones_visualization" default="true" />
+  <arg name="config_file" default="/home/pilzcc/PSENscan/ROS2_development/v0_galactic_ws/src/psen_scan_v2/config/final_fair_configuration.xml"/>
 
   <!-- Start rviz -->
   <arg name="rviz" default="true" />
@@ -63,12 +72,32 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     <arg name="host_udp_port_data" value="$(var host_udp_port_data)" />
     <arg name="host_udp_port_control" value="$(var host_udp_port_control)" />
     <arg name="fragmented_scans" value="$(var fragmented_scans)" />
+    <arg name="nr_subscribers" value="$(var nr_subscribers)" />
   </include>
 
   <!-- Publish tf frames for the device -->
   <node name="robot_state_publisher" pkg="robot_state_publisher" exec="robot_state_publisher">
-    <param name="robot_description" value="$(command 'xacro $(find-pkg-share psen_scan_v2)/urdf/example.urdf.xacro prefix:=$(var tf_prefix)')" />
+    <param name="robot_description" value="$(command 'xacro $(find-pkg-share psen_scan_v2)/urdf/add_scanner.urdf.xacro
+      nr_scanners:=$(var nr_subscribers)
+      prefix:=$(var tf_prefix)
+      prefix_sub0:=$(var tf_prefix_sub0)
+      prefix_sub1:=$(var tf_prefix_sub1)
+      prefix_sub2:=$(var tf_prefix_sub2) ')">
+    </param>
   </node>
+
+  <!-- Publish the defined zonesets from the xml configuration -->
+  <group if="$(var zones_visualization)">
+    <node name="config_server_node" exec="config_server_node" pkg="psen_scan_v2">
+      <param name="config_file" value="$(var config_file)" />
+      <param name="frame_id" value="$(var tf_prefix)" />
+    </node>
+  </group>
+
+  <!-- Visualize active zoneset -->
+  <group if="$(var zones_visualization)">
+    <node name="active_zoneset_node" exec="active_zoneset_node" pkg="psen_scan_v2" />
+  </group>
 
   <!-- Start rviz -->
   <group if="$(var rviz)">

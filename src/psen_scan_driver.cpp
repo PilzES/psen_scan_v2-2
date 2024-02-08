@@ -27,6 +27,7 @@
 #include "psen_scan_v2_standalone/scanner_config_builder.h"
 #include "psen_scan_v2_standalone/scan_range.h"
 
+#include "psen_scan_v2/default_ros_parameters.h"
 #include "psen_scan_v2/ros_parameter_handler.h"
 #include "psen_scan_v2/ros_scanner_node.h"
 
@@ -44,6 +45,7 @@ const std::string PARAM_ANGLE_START{ "angle_start" };
 const std::string PARAM_ANGLE_END{ "angle_end" };
 const std::string PARAM_X_AXIS_ROTATION{ "x_axis_rotation" };
 const std::string PARAM_FRAGMENTED_SCANS{ "fragmented_scans" };
+const std::string PARAM_NR_SUBSCRIBERS{ "nr_subscribers" };
 const std::string PARAM_INTENSITIES{ "intensities" };
 const std::string PARAM_RESOLUTION{ "resolution" };
 
@@ -69,28 +71,30 @@ int main(int argc, char** argv)
 
   try
   {
-    ScanRange scan_range{ util::TenthOfDegree::fromRad(
-                              configuration::DEFAULT_X_AXIS_ROTATION +
-                              getOptionalParam<double>(*node, PARAM_ANGLE_START, configuration::DEFAULT_ANGLE_START)),
-                          util::TenthOfDegree::fromRad(
-                              configuration::DEFAULT_X_AXIS_ROTATION +
-                              getOptionalParam<double>(*node, PARAM_ANGLE_END, configuration::DEFAULT_ANGLE_END)) };
+    ScanRange scan_range{ util::TenthOfDegree::fromRad(DEFAULT_X_AXIS_ROTATION +
+                                                        getOptionalParamFromServer<double>(
+                                                        *node, PARAM_ANGLE_START, configuration::DEFAULT_ANGLE_START)),
+                          util::TenthOfDegree::fromRad(DEFAULT_X_AXIS_ROTATION +
+                                                        getOptionalParamFromServer<double>(
+                                                        *node, PARAM_ANGLE_END, configuration::DEFAULT_ANGLE_END)) };
 
     ScannerConfiguration scanner_configuration{
-      ScannerConfigurationBuilder()
-          .hostIP(getOptionalParam<std::string>(*node, PARAM_HOST_IP, configuration::DEFAULT_HOST_IP_STRING))
-          .hostDataPort(getOptionalParam<int>(*node, PARAM_HOST_DATA_PORT, configuration::DATA_PORT_OF_HOST_DEVICE))
+      ScannerConfigurationBuilder(getRequiredParamFromServer<std::string>(*node, PARAM_SCANNER_IP))
+          .hostIP(getOptionalParamFromServer<std::string>(*node, PARAM_HOST_IP, configuration::DEFAULT_HOST_IP_STRING))
+          .hostDataPort(
+              getOptionalParamFromServer<int>(*node, PARAM_HOST_DATA_PORT, configuration::DATA_PORT_OF_HOST_DEVICE))
           .hostControlPort(
-              getOptionalParam<int>(*node, PARAM_HOST_CONTROL_PORT, configuration::CONTROL_PORT_OF_HOST_DEVICE))
-          .scannerIp(getRequiredParam<std::string>(*node, PARAM_SCANNER_IP))
+              getOptionalParamFromServer<int>(*node, PARAM_HOST_CONTROL_PORT, configuration::CONTROL_PORT_OF_HOST_DEVICE))
           .scannerDataPort(configuration::DATA_PORT_OF_SCANNER_DEVICE)
           .scannerControlPort(configuration::CONTROL_PORT_OF_SCANNER_DEVICE)
           .scanRange(scan_range)
           .enableDiagnostics()
-          .enableFragmentedScans(getOptionalParam<bool>(*node, PARAM_FRAGMENTED_SCANS, configuration::FRAGMENTED_SCANS))
-          .enableIntensities(getOptionalParam<bool>(*node, PARAM_INTENSITIES, configuration::INTENSITIES))
+          .enableFragmentedScans(
+              getOptionalParamFromServer<bool>(*node, PARAM_FRAGMENTED_SCANS, configuration::FRAGMENTED_SCANS))
+          .nrSubscribers(getOptionalParamFromServer<int>(*node, PARAM_NR_SUBSCRIBERS, configuration::NR_SUBSCRIBERS))
+          .enableIntensities(getOptionalParamFromServer<bool>(*node, PARAM_INTENSITIES, configuration::INTENSITIES))
           .scanResolution(util::TenthOfDegree::fromRad(
-              getOptionalParam<double>(*node, PARAM_RESOLUTION, configuration::DEFAULT_SCAN_ANGLE_RESOLUTION)))
+              getOptionalParamFromServer<double>(*node, PARAM_RESOLUTION, configuration::DEFAULT_SCAN_ANGLE_RESOLUTION)))
           .build()
     };
 
@@ -101,8 +105,8 @@ int main(int argc, char** argv)
 
     ROSScannerNode ros_scanner_node(node,
                                     DEFAULT_PUBLISH_TOPIC,
-                                    getOptionalParam<std::string>(*node, PARAM_TF_PREFIX, DEFAULT_TF_PREFIX),
-                                    configuration::DEFAULT_X_AXIS_ROTATION,
+                                    getOptionalParamFromServer<std::string>(*node, PARAM_TF_PREFIX, DEFAULT_TF_PREFIX),
+                                    DEFAULT_X_AXIS_ROTATION,
                                     scanner_configuration);
 
     NODE_TERMINATE_CALLBACK = std::bind(&ROSScannerNode::terminate, &ros_scanner_node);

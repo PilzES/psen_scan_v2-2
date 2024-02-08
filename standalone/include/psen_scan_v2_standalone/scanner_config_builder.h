@@ -21,6 +21,7 @@
 #include <string>
 
 #include "psen_scan_v2_standalone/scanner_configuration.h"
+#include "psen_scan_v2_standalone/configuration/scanner_ids.h"
 #include "psen_scan_v2_standalone/scan_range.h"
 #include "psen_scan_v2_standalone/data_conversion_layer/angle_conversions.h"
 #include "psen_scan_v2_standalone/util/ip_conversion.h"
@@ -34,20 +35,23 @@ namespace psen_scan_v2_standalone
 class ScannerConfigurationBuilder
 {
 public:
+  ScannerConfigurationBuilder(const std::string& scanner_ip);  // IP is mandatory
   ScannerConfiguration build() const;
 
 public:
-  ScannerConfigurationBuilder& hostIP(const std::string&);
-  ScannerConfigurationBuilder& hostDataPort(const int&);
-  ScannerConfigurationBuilder& hostControlPort(const int&);
-  ScannerConfigurationBuilder& scannerIp(const std::string&);
-  ScannerConfigurationBuilder& scannerDataPort(const int&);
-  ScannerConfigurationBuilder& scannerControlPort(const int&);
-  ScannerConfigurationBuilder& scanRange(const ScanRange&);
-  ScannerConfigurationBuilder& scanResolution(const util::TenthOfDegree&);
-  ScannerConfigurationBuilder& enableDiagnostics(const bool&);
-  ScannerConfigurationBuilder& enableIntensities(const bool&);
-  ScannerConfigurationBuilder& enableFragmentedScans(const bool&);
+  ScannerConfigurationBuilder& hostIP(const std::string& host_ip);
+  ScannerConfigurationBuilder& hostDataPort(const int& host_data_port);
+  ScannerConfigurationBuilder& hostControlPort(const int& host_control_port);
+  ScannerConfigurationBuilder& scannerIp(const std::string& scanner_ip);
+  ScannerConfigurationBuilder& scannerDataPort(const int& scanner_data_port);
+  ScannerConfigurationBuilder& scannerControlPort(const int& scanner_control_port);
+  ScannerConfigurationBuilder& scanRange(const ScanRange& scan_range);
+  ScannerConfigurationBuilder& scanResolution(const util::TenthOfDegree& scan_resolution);
+  ScannerConfigurationBuilder& enableDiagnostics(const bool& enable);
+  ScannerConfigurationBuilder& enableIntensities(const bool& enable);
+  ScannerConfigurationBuilder& enableFragmentedScans(const bool& enable);
+  ScannerConfigurationBuilder& nrSubscribers(const uint8_t& nr_subscribers);
+  operator ScannerConfiguration();
 
 private:
   static uint16_t convertPort(const int& port);
@@ -55,6 +59,11 @@ private:
 private:
   ScannerConfiguration config_;
 };
+
+ScannerConfigurationBuilder::ScannerConfigurationBuilder(const std::string& scanner_ip)
+{
+  scannerIp(scanner_ip);
+}
 
 inline ScannerConfiguration ScannerConfigurationBuilder::build() const
 {
@@ -72,7 +81,7 @@ inline ScannerConfiguration ScannerConfigurationBuilder::build() const
 
 inline ScannerConfigurationBuilder& ScannerConfigurationBuilder::hostIP(const std::string& ip)
 {
-  if (ip != "" && ip != "auto")
+  if (!ip.empty() && ip != "auto")
   {
     config_.host_ip_ = util::convertIP(ip);
   }
@@ -143,6 +152,22 @@ inline ScannerConfigurationBuilder& ScannerConfigurationBuilder::enableFragmente
   config_.fragmented_scans_ = enable;
   return *this;
 }
+
+inline ScannerConfigurationBuilder& ScannerConfigurationBuilder::nrSubscribers(const uint8_t& nr_subscribers = 0)
+{
+  if (nr_subscribers > configuration::MAX_NR_SUBSCRIBERS)
+  {
+    throw std::invalid_argument("No more than 3 subscribers are supported.");
+  }
+  config_.nr_subscribers_ = nr_subscribers;
+  return *this;
+}
+
+ScannerConfigurationBuilder::operator ScannerConfiguration()
+{
+  return build();
+}
+
 }  // namespace psen_scan_v2_standalone
 
 #endif  // PSEN_SCAN_V2_STANDALONE_SCANNER_CONFIG_BUILDER_H
