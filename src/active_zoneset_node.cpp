@@ -32,26 +32,35 @@ namespace psen_scan_v2
 {
 ActiveZonesetNode::ActiveZonesetNode(const rclcpp::Node::SharedPtr& node) : node_(node)
 {
-  zoneset_subscriber_ = node_->create_subscription<psen_scan_v2::msg::ZoneSetConfiguration>(
-        DEFAULT_ZONECONFIGURATION_TOPIC, rclcpp::QoS(10).transient_local(), std::bind(&ActiveZonesetNode::zonesetCallback, this, std::placeholders::_1));
+  zoneset_subscriber_ =
+      node_->create_subscription<psen_scan_v2::msg::ZoneSetConfiguration>(
+          DEFAULT_ZONECONFIGURATION_TOPIC, rclcpp::QoS(10).transient_local(),
+          [this](const std::shared_ptr<
+                 const psen_scan_v2::msg::ZoneSetConfiguration> &msg) {
+            this->zonesetCallback(msg);
+          });
 
   active_zoneset_subscriber_ = node_->create_subscription<std_msgs::msg::UInt8>(
-        DEFAULT_ACTIVE_ZONESET_TOPIC, 10, std::bind(&ActiveZonesetNode::activeZonesetCallback, this, std::placeholders::_1));
+      DEFAULT_ACTIVE_ZONESET_TOPIC, 10,
+      [this](const std::shared_ptr<const std_msgs::msg::UInt8> &msg) {
+        this->activeZonesetCallback(msg);
+      });
 
   zoneset_markers_ = node_->create_publisher<visualization_msgs::msg::MarkerArray>(DEFAULT_ZONESET_MARKER_ARRAY_TOPIC, 10);
 }
 
-void ActiveZonesetNode::zonesetCallback(const psen_scan_v2::msg::ZoneSetConfiguration::SharedPtr zoneset_config)
-{
+void ActiveZonesetNode::zonesetCallback(
+    const std::shared_ptr<const psen_scan_v2::msg::ZoneSetConfiguration>
+        &zoneset_config) {
   zoneset_config_ = *zoneset_config;
   updateMarkers();
 }
 
-void ActiveZonesetNode::activeZonesetCallback(const std_msgs::msg::UInt8::SharedPtr active_zoneset_id)
-{
+void ActiveZonesetNode::activeZonesetCallback(
+    const std::shared_ptr<const std_msgs::msg::UInt8> &active_zoneset_id) {
   active_zoneset_id_ = *active_zoneset_id;
   updateMarkers();
-};
+}
 
 void ActiveZonesetNode::updateMarkers()
 {
