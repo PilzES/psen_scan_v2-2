@@ -52,8 +52,11 @@ public:
   ActiveZonesetNode(const rclcpp::Node::SharedPtr& node);
 
 public:
-  void zonesetCallback(const psen_scan_v2::msg::ZoneSetConfiguration::SharedPtr zoneset_config);
-  void activeZonesetCallback(const std_msgs::msg::UInt8::SharedPtr active_zoneset_id);
+  void zonesetCallback(
+      const std::shared_ptr<const psen_scan_v2::msg::ZoneSetConfiguration>
+          &zoneset_config);
+  void activeZonesetCallback(
+      const std::shared_ptr<const std_msgs::msg::UInt8> &active_zoneset_id);
 
 private:
   void updateMarkers();
