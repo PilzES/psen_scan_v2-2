@@ -46,7 +46,7 @@ def generate_launch_description():
         DeclareLaunchArgument("host_udp_port_data", default_value="55115", description="UDP Port for monitoring frames"),
         DeclareLaunchArgument("host_udp_port_control", default_value="55116", description="UDP Port for commands"),
         DeclareLaunchArgument("fragmented_scans", default_value="false", description="Publish scan data per UDP packet"),
-        DeclareLaunchArgument("config_file", default_value=os.path.join(os.getenv("home"), "PSENConfig/config.xml"), description="Path to scanner configuration file"),
+        DeclareLaunchArgument("config_file", default_value=os.path.join(os.getenv("HOME"), "PSENConfig/config.xml"), description="Path to scanner configuration file"),
         DeclareLaunchArgument("rviz", default_value="true", description="Start RViz")
     ]
 
