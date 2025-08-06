@@ -52,8 +52,11 @@ public:
   bool intensitiesEnabled() const;
 
   bool fragmentedScansEnabled() const;
+  uint8_t nrSubscribers() const;
 
-  void setHostIp(const uint32_t& host_ip);
+  /*! deprecated: use void hostIp(const uint32_t& host_ip) instead */
+  [[deprecated("use void hostIp(const uint32_t& host_ip) instead")]] void setHostIp(const uint32_t& host_ip);
+  void hostIp(const uint32_t& host_ip);
 
 private:
   friend class ScannerConfigurationBuilder;
@@ -77,6 +80,7 @@ private:
   bool diagnostics_enabled_{ configuration::DIAGNOSTICS };
   bool intensities_enabled_{ configuration::INTENSITIES };
   bool fragmented_scans_{ configuration::FRAGMENTED_SCANS };
+  uint8_t nr_subscribers_{ configuration::NR_SUBSCRIBERS };
 };
 
 inline bool ScannerConfiguration::isComplete() const
@@ -149,9 +153,19 @@ inline bool ScannerConfiguration::fragmentedScansEnabled() const
   return fragmented_scans_;
 }
 
-inline void ScannerConfiguration::setHostIp(const uint32_t& host_ip)
+inline uint8_t ScannerConfiguration::nrSubscribers() const
+{
+  return nr_subscribers_;
+}
+
+inline void ScannerConfiguration::hostIp(const uint32_t& host_ip)
 {
   host_ip_ = host_ip;
+}
+
+inline void ScannerConfiguration::setHostIp(const uint32_t& host_ip)
+{
+  this->hostIp(host_ip);
 }
 
 }  // namespace psen_scan_v2_standalone

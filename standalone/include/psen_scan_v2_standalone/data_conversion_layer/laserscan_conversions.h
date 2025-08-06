@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 Pilz GmbH & Co. KG
+// Copyright (c) 2020-2022 Pilz GmbH & Co. KG
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -17,9 +17,12 @@
 #define PSEN_SCAN_V2_STANDALONE_LASERSCAN_CONVERSIONS_H
 
 #include "psen_scan_v2_standalone/configuration/default_parameters.h"
+#include "psen_scan_v2_standalone/configuration/scanner_ids.h"
 #include "psen_scan_v2_standalone/data_conversion_layer/angle_conversions.h"
 #include "psen_scan_v2_standalone/data_conversion_layer/monitoring_frame_msg.h"
 #include "psen_scan_v2_standalone/laserscan.h"
+
+#include "psen_scan_v2_standalone/util/logging.h"
 
 #include <algorithm>
 #include <numeric>
@@ -49,6 +52,9 @@ public:
    * IScanner::LaserScanCallback.
    *
    * @note expects all monitoring frames to have the same resolution.
+   *
+   * @throws data_conversion_layer::monitoring_frame::AdditionalFieldMissing if measurements, scan_counter or
+   * active_zoneset are not set in one of the stamped_msgs.
    *
    * @see data_conversion_layer::monitoring_frame::Message
    * @see ScannerV2
@@ -93,24 +99,53 @@ inline LaserScan LaserScanConverter::toLaserScan(
   const auto max_angle = calculateMaxAngle(stamped_msgs, min_angle);
 
   const auto timestamp = calculateTimestamp(stamped_msgs, sorted_stamped_msgs_indices);
+  configuration::ScannerId scanner_id = stamped_msgs[sorted_stamped_msgs_indices[0]].msg_.scannerId();
 
   std::vector<double> measurements;
   std::vector<double> intensities;
+  std::vector<IOState> io_states;
 
   for (auto index : sorted_stamped_msgs_indices)
   {
     measurements.insert(measurements.end(),
                         stamped_msgs[index].msg_.measurements().begin(),
                         stamped_msgs[index].msg_.measurements().end());
-    intensities.insert(intensities.end(),
-                       stamped_msgs[index].msg_.intensities().begin(),
-                       stamped_msgs[index].msg_.intensities().end());
+    if (stamped_msgs[index].msg_.hasIntensitiesField())
+    {
+      intensities.insert(intensities.end(),
+                         stamped_msgs[index].msg_.intensities().begin(),
+                         stamped_msgs[index].msg_.intensities().end());
+    }
   }
 
-  LaserScan scan(
-      stamped_msgs[0].msg_.resolution(), min_angle, max_angle, stamped_msgs[0].msg_.scanCounter(), timestamp);
-  scan.setMeasurements(measurements);
-  scan.setIntensities(intensities);
+  // Issue #320: Only for the io_states, we follow reception order instead Theta order.
+  // Other wise: index=0 who is the bigger Theta and correspond to the first io_state of the
+  // frame is placed at last item of vector io_states, and it provokes that io_states flicks.
+  for (const auto& single_msg : stamped_msgs)
+  {
+    if (single_msg.msg_.hasIOPinField())
+    {
+      PSENSCAN_DEBUG("io_states: ",
+                     "stamp_: {} fromTheta: {} ioPinDate: {} ",
+                     single_msg.stamp_,
+                     std::to_string(single_msg.msg_.fromTheta().toRad()),
+                     util::formatRange(single_msg.msg_.iOPinData().input_state));
+
+      io_states.emplace_back(single_msg.msg_.iOPinData(), single_msg.stamp_);
+    }
+  }
+
+  LaserScan scan(stamped_msgs[0].msg_.resolution(),
+                 min_angle,
+                 max_angle,
+                 stamped_msgs[0].msg_.scanCounter(),
+                 stamped_msgs[sorted_stamped_msgs_indices.back()].msg_.activeZoneset(),
+                 timestamp,
+                 scanner_id);
+
+  scan.measurements(measurements);
+  scan.intensities(intensities);
+  scan.ioStates(io_states);
 
   return scan;
 }
@@ -210,16 +245,16 @@ inline bool LaserScanConverter::thetaAnglesFitTogether(
     const std::vector<data_conversion_layer::monitoring_frame::MessageStamped>& stamped_msgs,
     const std::vector<int>& sorted_filled_stamped_msgs_indices)
 {
-  util::TenthOfDegree lastEnd = stamped_msgs[sorted_filled_stamped_msgs_indices[0]].msg_.fromTheta();
+  util::TenthOfDegree last_end = stamped_msgs[sorted_filled_stamped_msgs_indices[0]].msg_.fromTheta();
   for (auto index : sorted_filled_stamped_msgs_indices)
   {
     const auto& stamped_msg = stamped_msgs[index];
-    if (lastEnd != stamped_msg.msg_.fromTheta())
+    if (last_end != stamped_msg.msg_.fromTheta())
     {
       return false;
     }
-    lastEnd = stamped_msg.msg_.fromTheta() +
-              stamped_msg.msg_.resolution() * static_cast<int>(stamped_msg.msg_.measurements().size());
+    last_end = stamped_msg.msg_.fromTheta() +
+               stamped_msg.msg_.resolution() * static_cast<int>(stamped_msg.msg_.measurements().size());
   }
   return true;
 }

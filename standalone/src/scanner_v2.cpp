@@ -40,17 +40,19 @@ std::unique_ptr<util::Watchdog> WatchdogFactory::create(const util::Watchdog::Ti
 
 ScannerV2::ScannerV2(const ScannerConfiguration& scanner_config, const LaserScanCallback& laser_scan_callback)
   : IScanner(scanner_config, laser_scan_callback)
-  , sm_(new ScannerStateMachine(IScanner::getConfig(),
+  , sm_(new ScannerStateMachine(IScanner::config(),
                                 // LCOV_EXCL_START
                                 // The following includes calls to std::bind which are not marked correctly
                                 // by some gcc versions, see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=96006
                                 BIND_RAW_DATA_EVENT(RawReplyReceived),
                                 BIND_EVENT(ReplyReceiveError),
+                                std::bind(&ScannerV2::scannerStartErrorCallback, this, std::placeholders::_1),
+                                std::bind(&ScannerV2::scannerStopErrorCallback, this, std::placeholders::_1),
                                 BIND_RAW_DATA_EVENT(RawMonitoringFrameReceived),
                                 BIND_EVENT(MonitoringFrameReceivedError),
                                 std::bind(&ScannerV2::scannerStartedCallback, this),
                                 std::bind(&ScannerV2::scannerStoppedCallback, this),
-                                IScanner::getLaserScanCallback(),
+                                IScanner::laserScanCallback(),
                                 BIND_EVENT(scanner_events::StartTimeout),
                                 BIND_EVENT(scanner_events::MonitoringFrameTimeout)))
 // LCOV_EXCL_STOP
@@ -120,6 +122,20 @@ void ScannerV2::scannerStoppedCallback()
 {
   PSENSCAN_INFO("ScannerController", "Scanner stopped successfully.");
   scanner_has_stopped_.value().set_value();
+  scanner_has_stopped_ = boost::none;
+}
+
+void ScannerV2::scannerStartErrorCallback(const std::string& error_msg)
+{
+  PSENSCAN_INFO("ScannerController", "Scanner start failed.");
+  scanner_has_started_.value().set_exception(std::make_exception_ptr(std::runtime_error(error_msg)));
+  scanner_has_started_ = boost::none;
+}
+
+void ScannerV2::scannerStopErrorCallback(const std::string& error_msg)
+{
+  PSENSCAN_INFO("ScannerController", "Scanner stop failed.");
+  scanner_has_stopped_.value().set_exception(std::make_exception_ptr(std::runtime_error(error_msg)));
   scanner_has_stopped_ = boost::none;
 }
 

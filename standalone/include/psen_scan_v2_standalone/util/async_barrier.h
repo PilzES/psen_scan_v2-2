@@ -18,6 +18,7 @@
 #include <future>
 #include <thread>
 #include <chrono>
+#include <atomic>
 
 namespace psen_scan_v2_standalone
 {
@@ -35,15 +36,16 @@ public:
 
 private:
   std::promise<void> barrier_;
-
-protected:
-  // Child classes might implement their own waiting mechanisms. The shared_future allows for more flexibel usage.
-  const std::shared_future<void> future_{ barrier_.get_future() };
+  std::atomic_flag is_released_ = ATOMIC_FLAG_INIT;
+  const std::future<void> future_{ barrier_.get_future() };
 };
 
 inline void util::Barrier::release()
 {
-  barrier_.set_value();
+  if (!is_released_.test_and_set())
+  {
+    barrier_.set_value();
+  }
 }
 
 template <class Rep, class Period>
