@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 Pilz GmbH & Co. KG
+// Copyright (c) 2020-2022 Pilz GmbH & Co. KG
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -18,11 +18,8 @@
 
 #include <algorithm>
 #include <iterator>
-
 #include <sstream>
 #include <string>
-
-#include <fmt/format.h>
 
 namespace psen_scan_v2_standalone
 {
@@ -30,29 +27,36 @@ namespace util
 {
 /**
  * The resulting string will look like the following:
- * \verbatim "{Item1, Item2, [...], ItemLast}" \endverbatim
+ * "{Item1, Item2, [...], ItemLast}"
  * Examples:
- * \verbatim "{1, 2, 3}" \endverbatim
- * \verbatim "{}" (Empty Range) \endverbatim
+ * "{1, 2, 3}"
+ * "{}" (Empty Range)
  */
 template <typename T>
-std::string formatRange(const T& range)
+inline std::string formatRange(const T& range)
 {
-  std::stringstream strstr;
-  strstr << "{";
-  for (auto it = range.begin(); std::next(it) < range.end(); ++it)
+  std::ostringstream oss;
+  oss << "{";
+
+  auto it = range.begin();
+  if (it != range.end())
   {
-    strstr << fmt::format("{}, ", *it);
+    oss << *it;  // first element
+    ++it;
+
+    for (; it != range.end(); ++it)
+    {
+      oss << ", " << *it;
+    }
   }
-  if (range.begin() < range.end())
-  {
-    strstr << fmt::format("{}", *std::prev(range.end()));
-  }
-  strstr << "}";
-  return strstr.str();
+
+  oss << "}";
+  return oss.str();
 }
 
 }  // namespace util
 }  // namespace psen_scan_v2_standalone
 
 #endif  // PSEN_SCAN_V2_STANDALONE_FORMAT_RANGE_H
+
+

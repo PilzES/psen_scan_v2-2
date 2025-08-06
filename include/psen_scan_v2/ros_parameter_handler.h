@@ -30,7 +30,7 @@ namespace psen_scan_v2
  * @throws rclcpp::exceptions::InvalidParameterTypeException if the requested type does not match the stored parameter.
  */
 template <class T>
-T getOptionalParam(const rclcpp::Node& node, const std::string& key, const T& default_value)
+T getOptionalParamFromServer(const rclcpp::Node& node, const std::string& key, const T& default_value)
 {
   T ret_val{};
   if (!node.get_parameter_or(key, ret_val, default_value))
@@ -45,7 +45,7 @@ T getOptionalParam(const rclcpp::Node& node, const std::string& key, const T& de
  * @throws rclcpp::exceptions::InvalidParameterTypeException if the requested type does not match the stored parameter.
  */
 template <class T>
-T getRequiredParam(const rclcpp::Node& node, const std::string& key)
+T getRequiredParamFromServer(const rclcpp::Node& node, const std::string& key)
 {
   T ret_val{};
   if (!node.get_parameter(key, ret_val))

@@ -19,7 +19,6 @@ Changelog for package psen_scan_v2
 * Remove dependency on pilz_testutils
 * Always build hardware tests
 * Internal refactorings
-* also build on ROS rolling
 * Contributors: Pilz GmbH and Co. KG
 
 0.3.2 (2021-09-16)

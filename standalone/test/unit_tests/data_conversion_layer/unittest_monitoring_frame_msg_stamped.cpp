@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Pilz GmbH & Co. KG
+// Copyright (c) 2021-2022 Pilz GmbH & Co. KG
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -13,32 +13,50 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include <gtest/gtest.h>
+#include <vector>
 
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+
+#include "psen_scan_v2_standalone/configuration/scanner_ids.h"
+#include "psen_scan_v2_standalone/data_conversion_layer/diagnostics.h"
+#include "psen_scan_v2_standalone/data_conversion_layer/io_pin_data.h"
 #include "psen_scan_v2_standalone/data_conversion_layer/monitoring_frame_msg.h"
+#include "psen_scan_v2_standalone/data_conversion_layer/monitoring_frame_msg_builder.h"
+#include "psen_scan_v2_standalone/util/tenth_of_degree.h"
+#include "psen_scan_v2_standalone/io_state.h"
+
+#include "psen_scan_v2_standalone/data_conversion_layer/monitoring_frame_msg_helper.h"
+#include "psen_scan_v2_standalone/util/matchers_and_actions.h"
 
 using namespace psen_scan_v2_standalone;
 
 namespace psen_scan_v2_standalone_test
 {
-static data_conversion_layer::monitoring_frame::Message
-createMsg(const util::TenthOfDegree from_theta = util::TenthOfDegree{ 10 },
-          const util::TenthOfDegree resolution = util::TenthOfDegree{ 90 },
-          const uint32_t scan_counter = uint32_t{ 42 })
+static data_conversion_layer::monitoring_frame::Message createMsg()
 {
-  const std::vector<double> measurements{ 1., 2., 3., 4.5, 5., 42. };
-  const std::vector<double> intensities{ 0., 4., 3., 1007., 508., 14000. };
-  const std::vector<data_conversion_layer::monitoring_frame::diagnostic::Message> diagnostic_messages{};
+  data_conversion_layer::monitoring_frame::io::PinData io_pin_data;
+  io_pin_data.input_state.at(0).set(3);
+  io_pin_data.output_state.at(0).reset(1);
 
-  return data_conversion_layer::monitoring_frame::Message(
-      from_theta, resolution, scan_counter, measurements, intensities, diagnostic_messages);
+  return data_conversion_layer::monitoring_frame::MessageBuilder()
+      .fromTheta(util::TenthOfDegree{ 10 })
+      .resolution(util::TenthOfDegree{ 90 })
+      .scanCounter(42)
+      .activeZoneset(1)
+      .measurements({ 1., 2., 3., 4.5, 5., 42. })
+      .intensities({ 0., 4., 3., 1007., 508., 14000. })
+      .diagnosticMessages({ data_conversion_layer::monitoring_frame::diagnostic::Message{
+          configuration::ScannerId::master,
+          data_conversion_layer::monitoring_frame::diagnostic::ErrorLocation(1, 7) } })
+      .iOPinData(io_pin_data);
 }
 
 TEST(MonitoringFrameMsgStampedTest, testMsg)
 {
   const auto expected_msg{ createMsg() };
   const data_conversion_layer::monitoring_frame::MessageStamped stamped_msg(expected_msg, int64_t{ 3 });
-  EXPECT_EQ(expected_msg, stamped_msg.msg_);
+  EXPECT_THAT(stamped_msg.msg_, MonitoringFrameEq(expected_msg));
 }
 
 TEST(MonitoringFrameMsgStampedTest, testStamp)
